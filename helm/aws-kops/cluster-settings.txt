@@ -1,12 +1,16 @@
-- DefaultStorageClass
-- DefaultTolerationSeconds
-- Initializers
-- LimitRanger
-- NamespaceLifecycle
-- NodeRestriction
-- PersistentVolumeLabel
-- PodNodeSelector
-- PodTolerationRestriction
-- Priority
-- ResourceQuota
-- ServiceAccount
+  authorization:
+    rbac: {}
+  kubeAPIServer:
+    admissionControl:
+    - DefaultStorageClass
+    - DefaultTolerationSeconds
+    - Initializers
+    - LimitRanger
+    - NamespaceLifecycle
+    - NodeRestriction
+    - PersistentVolumeLabel
+    - PodNodeSelector
+    - PodTolerationRestriction
+    - Priority
+    - ResourceQuota
+    - ServiceAccount
