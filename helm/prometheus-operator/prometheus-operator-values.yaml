@@ -1,0 +1,7 @@
+nodeSelector:
+  kops.k8s.io/instancegroup: systemnodes
+tolerations:
+- effect: NoExecute
+  key: dedicated
+  operator: Equal
+  value: systemnodes

@@ -1,0 +1,17 @@
+## nginx configuration
+## Ref: https://github.com/kubernetes/ingress/blob/master/controllers/nginx/configuration.md
+##
+controller:
+  config:
+    use-proxy-protocol: "true"
+  stats:
+    enabled: true
+  metrics:
+    enabled: true
+  publishService:
+    enabled: true
+  service:
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
+rbac:
+  create: true

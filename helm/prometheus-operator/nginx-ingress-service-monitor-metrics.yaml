@@ -1,0 +1,20 @@
+# не нужен?
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  namespace: monitoring
+  name: nginx-ingress-service-monitor-metrics
+  labels:
+    prometheus: kube-prometheus
+spec:
+  jobLabel: nginx-ingress
+  selector:
+    matchLabels:
+      app: nginx-ingress
+      release: ingress-rel
+  namespaceSelector:
+    matchNames:
+      - ingress-nginx
+  endpoints:
+    - port: metrics
+      interval: 30s

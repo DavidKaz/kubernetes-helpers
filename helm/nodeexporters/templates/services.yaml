@@ -1,0 +1,17 @@
+{{- range .Values.extservers }}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ pluck "name" . | first | printf "%s-exporter" }}
+  namespace: monitoring
+  labels:
+    app: exporter-node
+    component: node-exporter
+spec:
+  ports:
+  - name: metrics
+    protocol: TCP
+    port: 9100
+    targetPort: 9100
+{{- end }}

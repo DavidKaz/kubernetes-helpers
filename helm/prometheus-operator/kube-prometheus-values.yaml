@@ -1,0 +1,39 @@
+alertmanager:
+  nodeSelector:
+    kops.k8s.io/instancegroup: systemnodes
+  storageSpec:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: eu-west-1b
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+      selector: {}
+prometheus:
+  ingress:
+    enabled: true
+    annotations:
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: basic-auth
+      nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+      kubernetes.io/ingress.class: nginx
+      kubernetes.io/tls-acme: "true"
+    fqdn: "prometheus.base.domain"
+    tls:
+    - hosts:
+      - prometheus.base.domain
+      secretName: prometheus-tls
+  nodeSelector:
+    kops.k8s.io/instancegroup: systemnodes
+  retention: 1440h
+  storageSpec:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: eu-west-1b
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+      selector: {}
+

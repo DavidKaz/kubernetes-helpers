@@ -1,0 +1,14 @@
+{{- range .Values.extservers }}
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: {{ pluck "name" . | first | printf "%s-exporter" }}
+  namespace: monitoring
+subsets:
+  - addresses:
+      - ip: {{ pluck "ip" . | first }}
+    ports:
+      - name: metrics
+        port: 9100
+{{- end }}

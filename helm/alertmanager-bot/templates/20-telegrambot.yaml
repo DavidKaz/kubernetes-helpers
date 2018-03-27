@@ -1,0 +1,64 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    service: {{ .Chart.Name }}
+  namespace: monitoring
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        service: {{ .Chart.Name }}
+    spec:
+      nodeSelector:
+        kops.k8s.io/instancegroup: systemnodes
+      containers:
+      - name: {{ .Chart.Name }}
+        image: metalmatze/alertmanager-bot:0.2
+        env:
+        - name: KUBERNETES_DEPLOYED
+          value: "{{ now }}"
+        - name: BOLT_PATH
+          value: "/data/bot.db"
+        - name: STORE
+          value: "bolt"
+        - name: TELEGRAM_ADMIN
+          value: "admin.id"
+        - name: TELEGRAM_TOKEN
+          value: "bot_id:token"
+        - name: ALERTMANAGER_URL
+          value: "http://alertmanager-operated:9093"
+        - name: LISTEN_ADDR
+          value: "0.0.0.0:8080"
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        volumeMounts:
+          - mountPath: /data
+            name: data
+      tolerations:
+      - effect: NoExecute
+        key: dedicated
+        operator: Equal
+        value: systemnodes
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-bot
+  namespace: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    service: {{ .Chart.Name }}
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080

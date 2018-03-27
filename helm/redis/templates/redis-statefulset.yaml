@@ -1,0 +1,108 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: redis-cluster
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  serviceName: redis-cluster-nodes
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        name: redis-cluster-node
+    spec:
+      terminationGracePeriodSeconds: 10
+      serviceAccount: redis-cluster
+      affinity:
+        podAntiAffinity:
+        {{- if eq .Values.AntiAffinity "hard" }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: "kubernetes.io/hostname"
+            labelSelector:
+              matchLabels:
+                name: redis-cluster-node
+        {{- else if eq .Values.AntiAffinity "soft" }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 5
+            podAffinityTerm:
+              topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  name: redis-cluster-node
+        {{- end }}
+      containers:
+        # Redis
+        - name: redis-node
+          image: redis:3.2
+          command:
+            - redis-server
+          args:
+            - /config/node.conf
+          ports:
+            - name: redis
+              containerPort: 6379
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: redis-config
+              mountPath: /config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 1Gi
+          livenessProbe: &healthcheck
+            exec:
+              command: [ "redis-cli", "ping" ]
+          readinessProbe:
+            <<: *healthcheck
+
+        # Sentinel
+        - name: redis-sentinel
+          image: redis:3.2
+          command: [ "bash", "-c", "touch sentinel.conf && redis-sentinel sentinel.conf" ]
+          ports:
+            - name: sentinel
+              containerPort: 26379
+          resources:
+            requests:
+              cpu: 25m
+              memory: 50Mi
+          livenessProbe: &healthcheck
+            exec:
+              command: [ "redis-cli", "-p", "26379", "ping" ]
+          readinessProbe:
+            <<: *healthcheck
+
+        # Sidecar
+        - name: redis-sidecar
+          image: flant/kube-redis
+          imagePullPolicy: Always
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: pod-info
+              mountPath: /etc/pod-info
+          readinessProbe:
+            exec:
+              command: [ "cat", "booted" ]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 50Mi
+
+      volumes:
+        - name: pod-info
+          downwardAPI:
+            items:
+              - path: labels
+                fieldRef:
+                  fieldPath: metadata.labels
+        - name: redis-config
+          configMap:
+            name: redis-cluster-sentinel
+        - name: data
+          emptyDir: {}
