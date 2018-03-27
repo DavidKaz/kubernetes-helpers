@@ -1,0 +1,5 @@
+Добавить в ds:weave-net
+      - effect: NoExecute
+        key: dedicated
+        operator: Equal
+        value: systemnodes
