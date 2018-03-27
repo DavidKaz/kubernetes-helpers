@@ -21,3 +21,4 @@ ingress:
 extraVars:
 - name: GF_INSTALL_PLUGINS
   value: grafana-worldmap-panel,vertamedia-clickhouse-datasource
+# TODO: список data source
