@@ -1,0 +1,3 @@
+  annotations:
+    scheduler.alpha.kubernetes.io/defaultTolerations: '[{ "Key": "dedicated", "Value":
+      "systemnodes", "Operator": "Equal", "Effect": "NoExecute" }]'
