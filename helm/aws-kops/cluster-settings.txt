@@ -1,0 +1,12 @@
+- DefaultStorageClass
+- DefaultTolerationSeconds
+- Initializers
+- LimitRanger
+- NamespaceLifecycle
+- NodeRestriction
+- PersistentVolumeLabel
+- PodNodeSelector
+- PodTolerationRestriction
+- Priority
+- ResourceQuota
+- ServiceAccount
