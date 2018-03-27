@@ -1,0 +1,59 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    service: {{ .Chart.Name }}
+spec:
+  template:
+    metadata:
+      labels:
+        service: {{ .Chart.Name }}
+    spec:
+      imagePullSecrets:
+        - name: registrysecret
+      containers:
+      - name: front
+        command: ["node", "server.js"]
+        image: {{ printf "registry/front:%s" .Values.release_tag | quote }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "100m"
+#          limits:
+#            memory: "640Mi"
+#            cpu: "300m"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9155
+          initialDelaySeconds: 15
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 9155
+          initialDelaySeconds: 15
+          periodSeconds: 3
+        env:
+        - name: KUBERNETES_DEPLOYED
+          value: "{{ now }}"
+        ports:
+        - name: http
+          containerPort: 9155
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    service: {{ .Chart.Name }}
+  ports:
+    - name: http
+      port: 9155
+      protocol: TCP
+      targetPort: 9155

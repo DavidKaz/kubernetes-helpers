@@ -1,0 +1,6 @@
+release_tag: "latest"
+environment: "production"
+domains:
+  _default: "main.domain"
+  production: "main.domain"
+  awsstage: "front.tech2.main.domain"

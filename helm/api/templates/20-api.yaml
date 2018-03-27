@@ -1,0 +1,52 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    service: {{ .Chart.Name }}
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        service: {{ .Chart.Name }}
+    spec:
+      imagePullSecrets:
+        - name: registrysecret
+      containers:
+      - name: {{ .Chart.Name }}
+        image: {{ printf "docker.repo/api:%s" .Values.release_tag | quote }}
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        env:
+        - name: KUBERNETES_DEPLOYED
+          value: "{{ now }}"
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  type: ClusterIP
+  selector:
+    service: {{ .Chart.Name }}
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 80
