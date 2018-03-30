@@ -21,4 +21,29 @@ ingress:
 extraVars:
 - name: GF_INSTALL_PLUGINS
   value: grafana-worldmap-panel,vertamedia-clickhouse-datasource
-# TODO: список data source
+storageSpec:
+  class: eu-west-1b
+  accessMode: ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+keepOriginalDatasources: false
+dataSource:
+  prometheus-datasource.json: |+
+    {
+      "access": "proxy",
+      "basicAuth": false,
+      "name": "prometheus",
+      "type": "prometheus",
+      "url": "http://kube-prometheus-prometheus:9090"
+    }
+  clickhouse-datasource.json: |+
+    {
+      "access": "proxy",
+      "basicAuth": true,
+      "basicAuthUser": "default",
+      "basicAuthPassword": "##CLICKHOUSE_PASSWORD##",
+      "name": "clickhouse",
+      "type": "vertamedia-clickhouse-datasource",
+      "url": "http://clickhouse.loghouse:8123"
+    }
