@@ -1,3 +1,5 @@
+# Alert manager config
+```
 global:
   resolve_timeout: 5m
 route:
@@ -16,6 +18,7 @@ receivers:
   webhook_configs:
   - send_resolved: true
     url: 'http://alertmanager-bot:8080'
+```
 # ---------------------------
 # kubectl -n monitoring get secret alertmanager-kube-prometheus -ojson | jq -r '.data["alertmanager.yaml"]' | base64 -d > alertmanager.yaml
 # kubectl -n monitoring create secret generic alertmanager-kube-prometheus --from-literal=alertmanager.yaml="$(< alertmanager.yaml)" --dry-run -oyaml | kubectl -n monitoring replace secret --filename=-

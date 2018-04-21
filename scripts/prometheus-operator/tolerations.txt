@@ -1,6 +1,7 @@
 Добавить в ds:kube-prometheus-exporter-node
+```
       - effect: NoExecute
         key: dedicated
         operator: Equal
         value: systemnodes
-
+```
