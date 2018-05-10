@@ -1,0 +1,8 @@
+aws configure
+aws s3api create-bucket --bucket ##cluster-name## --region eu-central-1 --create-bucket-configuration LocationConstraint=eu-central-1
+aws s3api put-bucket-versioning --bucket ##cluster-name## --versioning-configuration Status=Enabled
+export KOPS_STATE_STORE=s3://##cluster-name##
+ssh-keygen
+kops create cluster --master-count 1 --node-count 3 --name ##cluster-name##.k8s.local --zones eu-central-1a,eu-central-1b,eu-central-1c --network-cidr "172.40.0.0/16" --networking weave
+kops edit cluster --name ##cluster-name##.k8s.local
+kops update cluster --name ##cluster-name##.k8s.local --yes
