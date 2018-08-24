@@ -760,3 +760,7 @@ Done with success
 [2018-08-24T16:48:49,578][INFO ][o.e.c.m.MetaDataUpdateSettingsService] [sUL5pb-] updating number_of_replicas to [0] for indices [searchguard]
 [2018-08-24T16:48:49,591][INFO ][o.e.c.m.MetaDataUpdateSettingsService] [sUL5pb-] [searchguard/-OqvcOclRtG2qj96US6h9g] auto expanded replicas to [0]
 ```
+
+# TODO
+
+* Убрать всё лишнее из настроек
