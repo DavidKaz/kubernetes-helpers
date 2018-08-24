@@ -1,4 +1,4 @@
-# Установка elasticsearch + search-guard
+# Установка elasticsearch + search-guard + x-pack monitoring
 
 ## Пакеты
 
@@ -218,7 +218,7 @@ drwxr-xr-x 6 root root 4096 Aug 24 12:03 ..
 root-ca.pem надо будет добавить всем клиентам, чтобы могли без ошибок подключаться к серверам.
 
 
-### Конфигурация search-guard
+## Конфигурация search-guard
 
 Настройки хранятся в индексе elastic, заливаются туда с помощью sgadmin, поэтому делать только на одной ноде.
 
@@ -632,4 +632,131 @@ sg_alerting:
     '*':
       '*':
       - "READ"
+```
+
+## Конфигурация elasticsearch
+
+Большая часть конфигурации берётся из elastic1_elasticsearch_config_snippet.yml, также добавляются настройки elastic и xpack мониторинга.
+
+Search guard в связке с xpack в данный момент поддерживает только http exporter.
+
+```
+# This is a configuration snippet for the node elastic1
+# This snippet needs to be inserted into the file config/elasticsearch.yml of the respective node.
+# If the config file already contains SearchGuard configuration, this needs to be replaced.
+# Furthermore, you need to copy the files referenced below into the same directory.
+# Please refer to http://docs.search-guard.com/latest/configuring-tls for further configuration of your installation.
+
+searchguard.ssl.transport.pemcert_filepath: elastic1.pem
+searchguard.ssl.transport.pemkey_filepath: elastic1.key
+searchguard.ssl.transport.pemkey_password: Пароль3
+searchguard.ssl.transport.pemtrustedcas_filepath: signing-ca.pem
+searchguard.ssl.transport.enforce_hostname_verification: false
+searchguard.ssl.transport.resolve_hostname: false
+searchguard.ssl.http.enabled: true
+searchguard.ssl.http.pemcert_filepath: elastic1_http.pem
+searchguard.ssl.http.pemkey_filepath: elastic1_http.key
+searchguard.ssl.http.pemkey_password: Пароль3
+searchguard.ssl.http.pemtrustedcas_filepath: signing-ca.pem
+searchguard.nodes_dn:
+- CN=elastic1.company.com,OU=Ops,OU=CA,O=Company.,DC=company,DC=com
+- CN=elastic2.company.com,OU=Ops,OU=CA,O=Company.,DC=company,DC=com
+- CN=elastic3.company.com,OU=Ops,OU=CA,O=Company.,DC=company,DC=com
+searchguard.authcz.admin_dn:
+- CN=admin.example.com,OU=Ops,O=Company.,DC=company,DC=com
+# SG end
+
+searchguard.enterprise_modules_enabled: false
+searchguard.restapi.roles_enabled: ["sg_all_access"]
+cluster.routing.allocation.disk.threshold_enabled: false
+cluster.name: cluster
+network.host: xx.xx.xx.xx
+# После добавления достаточнго количества нод увеличить
+discovery.zen.minimum_master_nodes: 1
+node.max_local_storage_nodes: 1
+discovery.zen.ping.unicast.hosts: ["elastic1.company.com", "elastic2.company.com", "elastic3.company.com"]
+xpack.security.enabled: false
+xpack.monitoring.enabled: true
+xpack.monitoring.collection.enabled: true
+xpack.monitoring.exporters:
+  id1:
+    type: http
+    host: ["https://xx.xx.xx.xx:9200"]
+    auth.username: monitor
+    auth.password: ПарольМонитор
+    ssl:
+      certificate_authorities: [ "/etc/elasticsearch/signing-ca.pem" ]
+```
+
+### Сертификаты
+
+```
+cp elastic1.key /etc/elasticsearch/
+cp elastic1.pem /etc/elasticsearch/
+cp elastic1_http.key /etc/elasticsearch/
+cp elastic1_http.pem /etc/elasticsearch/
+cp signing-ca.pem /etc/elasticsearch/
+cd /etc/elasticsearch/
+chown elasticsearch:elasticsearch elastic1.key elastic1.pem elastic1_http.key elastic1_http.pem signing-ca.pem
+chmod 600 elastic1.key elastic1.pem elastic1_http.key elastic1_http.pem signing-ca.pem
+```
+
+## Запуск и применение настроек searchguard
+
+### admin сертифиат для curl
+
+Чтобы использовать curl с учёткой админ, надо раскодировать ключ:
+
+https://github.com/floragunncom/search-guard/issues/524
+
+openssl pkcs8 -topk8 -inform PEM -in admin.key -outform PEM -out admin_nocrypt.pk8.key -nocrypt
+
+Использовать Пароль3
+
+### Запуск
+
+После запуска первой ноды в её логах будет информация о том, что
+
+```
+searchguard index does not exist yet, so no need to load config on node startup. Use sgadmin to initialize cluster
+```
+
+А также ругань мониторинга, что он не может отправить данные.
+
+### Применение настроек searchguard
+
+```
+root@elastic1 ~ # /usr/share/elasticsearch/plugins/search-guard-6/tools/sgadmin.sh -cert /root/tools/search-guard-tlstool/out/admin.pem -key /root/tools/search-guard-tlstool/out/admin_nocrypt.pk8.key -cacert /root/tools/search-guard-tlstool/out/signing-ca.pem -h elastic1.company.com -p 9300 -cn cluster -cd /root/current
+WARNING: JAVA_HOME not set, will use /usr/bin/java
+Search Guard Admin v6
+Will connect to elastic1.company.com:9300 ... done
+Elasticsearch Version: 6.3.2
+Search Guard Version: 6.3.2-23.0
+Connected as CN=admin.example.com,OU=Ops,O=COMPANY.,DC=company,DC=com
+Contacting elasticsearch cluster 'cluster' and wait for YELLOW clusterstate ...
+Clustername: cluster
+Clusterstate: GREEN
+Number of nodes: 1
+Number of data nodes: 1
+searchguard index does not exists, attempt to create it ... done (0-all replicas)
+Populate config from /root/current/
+Will update 'sg/config' with /root/current/sg_config.yml
+   SUCC: Configuration for 'config' created or updated
+Will update 'sg/roles' with /root/current/sg_roles.yml
+   SUCC: Configuration for 'roles' created or updated
+Will update 'sg/rolesmapping' with /root/current/sg_roles_mapping.yml
+   SUCC: Configuration for 'rolesmapping' created or updated
+Will update 'sg/internalusers' with /root/current/sg_internal_users.yml
+   SUCC: Configuration for 'internalusers' created or updated
+Will update 'sg/actiongroups' with /root/current/sg_action_groups.yml
+   SUCC: Configuration for 'actiongroups' created or updated
+Done with success
+```
+
+После этого в логах должна пропасть ругань от мониторинга, а также сообщение о создании индекса
+
+```
+[2018-08-24T16:48:49,463][INFO ][o.e.c.m.MetaDataCreateIndexService] [sUL5pb-] [searchguard] creating index, cause [api], templates [], shards [1]/[1], mappings []
+[2018-08-24T16:48:49,578][INFO ][o.e.c.m.MetaDataUpdateSettingsService] [sUL5pb-] updating number_of_replicas to [0] for indices [searchguard]
+[2018-08-24T16:48:49,591][INFO ][o.e.c.m.MetaDataUpdateSettingsService] [sUL5pb-] [searchguard/-OqvcOclRtG2qj96US6h9g] auto expanded replicas to [0]
 ```
