@@ -33,6 +33,8 @@ apt-get install elasticsearch
 
 ### Конфигурация
 
+https://docs.search-guard.com/latest/offline-tls-tool
+
 Подготавливаем файл /root/tools/search-guard-tlstool/company.yml
 
 ```
@@ -172,4 +174,10 @@ clients:
     dn: CN=admin.example.com,OU=Ops,O=COMPANY Dev.,DC=company,DC=com
     admin: true
 
+```
+
+Сгенерировать сертификаты:
+
+```
+./tools/sgtlstool.sh -c config/company.yml -ca -crt
 ```
