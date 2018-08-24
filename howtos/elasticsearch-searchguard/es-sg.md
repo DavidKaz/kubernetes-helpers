@@ -181,3 +181,36 @@ clients:
 ```
 ./tools/sgtlstool.sh -c config/company.yml -ca -crt
 ```
+
+Должно получиться следующее
+
+```
+root@elastic1 ~/tools/search-guard-tlstool # ls -al out/
+total 104
+drwxr-xr-x 2 root root 4096 Aug 24 14:07 .
+drwxr-xr-x 6 root root 4096 Aug 24 12:03 ..
+-rw-r--r-- 1 root root 1801 Aug 24 14:07 admin.key
+-rw-r--r-- 1 root root 3156 Aug 24 14:07 admin.pem
+-rw-r--r-- 1 root root  294 Aug 24 14:07 client-certificates.readme
+-rw-r--r-- 1 root root 1801 Aug 24 14:07 client.key
+-rw-r--r-- 1 root root 3156 Aug 24 14:07 client.pem
+-rw-r--r-- 1 root root 1410 Aug 24 14:07 elastic1_elasticsearch_config_snippet.yml
+-rw-r--r-- 1 root root 1801 Aug 24 14:07 elastic1_http.key
+-rw-r--r-- 1 root root 3254 Aug 24 14:07 elastic1_http.pem
+-rw-r--r-- 1 root root 1801 Aug 24 14:07 elastic1.key
+-rw-r--r-- 1 root root 3254 Aug 24 14:07 elastic1.pem
+-rw-r--r-- 1 root root 1410 Aug 24 14:07 elastic2_elasticsearch_config_snippet.yml
+-rw-r--r-- 1 root root 1801 Aug 24 14:07 elastic2_http.key
+-rw-r--r-- 1 root root 3254 Aug 24 14:07 elastic2_http.pem
+-rw-r--r-- 1 root root 1801 Aug 24 14:07 elastic2.key
+-rw-r--r-- 1 root root 3254 Aug 24 14:07 elastic2.pem
+-rw-r--r-- 1 root root 1410 Aug 24 14:07 elastic3_elasticsearch_config_snippet.yml
+-rw-r--r-- 1 root root 1801 Aug 24 14:07 elastic3_http.key
+-rw-r--r-- 1 root root 3254 Aug 24 14:07 elastic3_http.pem
+-rw-r--r-- 1 root root 1801 Aug 24 14:07 elastic3.key
+-rw-r--r-- 1 root root 3254 Aug 24 14:07 elastic3.pem
+-rw-r--r-- 1 root root 1801 Aug 14 15:03 root-ca.key
+-rw-r--r-- 1 root root 1371 Aug 14 15:03 root-ca.pem
+-rw-r--r-- 1 root root 1801 Aug 14 15:03 signing-ca.key
+-rw-r--r-- 1 root root 1562 Aug 14 15:03 signing-ca.pem
+```
