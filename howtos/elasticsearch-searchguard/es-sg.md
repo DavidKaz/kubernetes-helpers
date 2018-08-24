@@ -31,7 +31,7 @@ apt-get install elasticsearch
 
 Распаковываем в /root/tools/search-guard-tlstool на одном сервере
 
-### Конфигурация
+### Конфигурация сертификатов
 
 https://docs.search-guard.com/latest/offline-tls-tool
 
@@ -213,4 +213,423 @@ drwxr-xr-x 6 root root 4096 Aug 24 12:03 ..
 -rw-r--r-- 1 root root 1371 Aug 14 15:03 root-ca.pem
 -rw-r--r-- 1 root root 1801 Aug 14 15:03 signing-ca.key
 -rw-r--r-- 1 root root 1562 Aug 14 15:03 signing-ca.pem
+```
+
+root-ca.pem надо будет добавить всем клиентам, чтобы могли без ошибок подключаться к серверам.
+
+
+### Конфигурация search-guard
+
+Настройки хранятся в индексе elastic, заливаются туда с помощью sgadmin, поэтому делать только на одной ноде.
+
+Изначально searchguard никак не сконфигурирован, используются настройки подготовленные на основе demo установки:
+
+sg_action_groups.yml - без изменений
+
+```
+---
+UNLIMITED:
+  readonly: true
+  permissions:
+  - "*"
+INDICES_ALL:
+  readonly: true
+  permissions:
+  - "indices:*"
+ALL:
+  readonly: true
+  permissions:
+  - "INDICES_ALL"
+MANAGE:
+  readonly: true
+  permissions:
+  - "indices:monitor/*"
+  - "indices:admin/*"
+CREATE_INDEX:
+  readonly: true
+  permissions:
+  - "indices:admin/create"
+  - "indices:admin/mapping/put"
+MANAGE_ALIASES:
+  readonly: true
+  permissions:
+  - "indices:admin/aliases*"
+MONITOR:
+  readonly: true
+  permissions:
+  - "INDICES_MONITOR"
+INDICES_MONITOR:
+  readonly: true
+  permissions:
+  - "indices:monitor/*"
+DATA_ACCESS:
+  readonly: true
+  permissions:
+  - "indices:data/*"
+  - "CRUD"
+WRITE:
+  readonly: true
+  permissions:
+  - "indices:data/write*"
+  - "indices:admin/mapping/put"
+READ:
+  readonly: true
+  permissions:
+  - "indices:data/read*"
+  - "indices:admin/mappings/fields/get*"
+DELETE:
+  readonly: true
+  permissions:
+  - "indices:data/write/delete*"
+CRUD:
+  readonly: true
+  permissions:
+  - "READ"
+  - "WRITE"
+SEARCH:
+  readonly: true
+  permissions:
+  - "indices:data/read/search*"
+  - "indices:data/read/msearch*"
+  - "SUGGEST"
+SUGGEST:
+  readonly: true
+  permissions:
+  - "indices:data/read/suggest*"
+INDEX:
+  readonly: true
+  permissions:
+  - "indices:data/write/index*"
+  - "indices:data/write/update*"
+  - "indices:admin/mapping/put"
+  - "indices:data/write/bulk*"
+GET:
+  readonly: true
+  permissions:
+  - "indices:data/read/get*"
+  - "indices:data/read/mget*"
+CLUSTER_ALL:
+  readonly: true
+  permissions:
+  - "cluster:*"
+CLUSTER_MONITOR:
+  readonly: true
+  permissions:
+  - "cluster:monitor/*"
+CLUSTER_COMPOSITE_OPS_RO:
+  readonly: true
+  permissions:
+  - "indices:data/read/mget"
+  - "indices:data/read/msearch"
+  - "indices:data/read/mtv"
+  - "indices:data/read/coordinate-msearch*"
+  - "indices:admin/aliases/exists*"
+  - "indices:admin/aliases/get*"
+  - "indices:data/read/scroll"
+CLUSTER_COMPOSITE_OPS:
+  readonly: true
+  permissions:
+  - "indices:data/write/bulk"
+  - "indices:admin/aliases*"
+  - "indices:data/write/reindex"
+  - "CLUSTER_COMPOSITE_OPS_RO"
+MANAGE_SNAPSHOTS:
+  readonly: true
+  permissions:
+  - "cluster:admin/snapshot/*"
+  - "cluster:admin/repository/*"
+```
+
+sg_config.yml - убраны все лишние authc, совсем выпилен authz
+
+```
+---
+searchguard:
+  dynamic:
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        enabled: false
+        internalProxies: "192\\.168\\.0\\.10|192\\.168\\.0\\.11"
+        remoteIpHeader: "x-forwarded-for"
+        proxiesHeader: "x-forwarded-by"
+    authc:
+      basic_internal_auth_domain:
+        http_enabled: true
+        transport_enabled: true
+        order: 1
+        http_authenticator:
+          type: "basic"
+          challenge: true
+        authentication_backend:
+          type: "intern"
+```
+
+sg_internal_users.yml - всем пользователям поменять хеши паролей с помощью /usr/share/elasticsearch/plugins/search-guard-6/tools/hash.sh , добавлен пользователь monitor с ролью monitor
+```
+---
+admin:
+  readonly: true
+  hash: "hash"
+  roles:
+  - "admin"
+  attributes:
+    attribute1: "value1"
+    attribute2: "value2"
+    attribute3: "value3"
+logstash:
+  hash: "hash"
+  roles:
+  - "logstash"
+kibanaserver:
+  readonly: true
+  hash: "hash"
+kibanaro:
+  hash: "hash"
+  roles:
+  - "kibanauser"
+  - "readall"
+readall:
+  hash: "hash"
+  roles:
+  - "readall"
+snapshotrestore:
+  hash: "hash"
+  roles:
+  - "snapshotrestore"
+monitor:
+  hash: "hash"
+  roles:
+  - "monitor"
+```
+
+sg_roles_mapping.yml - пользователь monitor добавлен в роли sg_kibana_server, sg_monitor https://docs.search-guard.com/latest/search-guard-xpack-monitoring по ссылке написано делать по-другому, но получилось только так
+```
+---
+sg_all_access:
+  readonly: true
+  backendroles:
+  - "admin"
+sg_logstash:
+  backendroles:
+  - "logstash"
+sg_kibana_server:
+  readonly: true
+  users:
+  - "kibanaserver"
+  - "monitor"
+sg_kibana_user:
+  backendroles:
+  - "kibanauser"
+sg_readall:
+  readonly: true
+  backendroles:
+  - "readall"
+sg_manage_snapshots:
+  readonly: true
+  backendroles:
+  - "snapshotrestore"
+sg_own_index:
+  users:
+  - "*"
+sg_monitor:
+  users:
+  - "monitor"
+```
+
+sg_roles.yml - без изменений
+```
+---
+sg_all_access:
+  readonly: true
+  cluster:
+  - "UNLIMITED"
+  indices:
+    '*':
+      '*':
+      - "UNLIMITED"
+  tenants:
+    admin_tenant: "RW"
+sg_readall:
+  readonly: true
+  cluster:
+  - "CLUSTER_COMPOSITE_OPS_RO"
+  indices:
+    '*':
+      '*':
+      - "READ"
+sg_readall_and_monitor:
+  cluster:
+  - "CLUSTER_MONITOR"
+  - "CLUSTER_COMPOSITE_OPS_RO"
+  indices:
+    '*':
+      '*':
+      - "READ"
+sg_kibana_user:
+  readonly: true
+  cluster:
+  - "INDICES_MONITOR"
+  - "CLUSTER_COMPOSITE_OPS"
+  indices:
+    ?kibana:
+      '*':
+      - "MANAGE"
+      - "INDEX"
+      - "READ"
+      - "DELETE"
+    ?kibana-6:
+      '*':
+      - "MANAGE"
+      - "INDEX"
+      - "READ"
+      - "DELETE"
+    '*':
+      '*':
+      - "indices:data/read/field_caps*"
+sg_kibana_server:
+  readonly: true
+  cluster:
+  - "CLUSTER_MONITOR"
+  - "CLUSTER_COMPOSITE_OPS"
+  - "cluster:admin/xpack/monitoring*"
+  - "indices:admin/template*"
+  indices:
+    ?kibana:
+      '*':
+      - "INDICES_ALL"
+    ?kibana-6:
+      '*':
+      - "INDICES_ALL"
+    ?reporting*:
+      '*':
+      - "INDICES_ALL"
+    ?monitoring*:
+      '*':
+      - "INDICES_ALL"
+sg_logstash:
+  cluster:
+  - "CLUSTER_MONITOR"
+  - "CLUSTER_COMPOSITE_OPS"
+  - "indices:admin/template/get"
+  - "indices:admin/template/put"
+  indices:
+    logstash-*:
+      '*':
+      - "CRUD"
+      - "CREATE_INDEX"
+    '*beat*':
+      '*':
+      - "CRUD"
+      - "CREATE_INDEX"
+sg_manage_snapshots:
+  cluster:
+  - "MANAGE_SNAPSHOTS"
+  indices:
+    '*':
+      '*':
+      - "indices:data/write/index"
+      - "indices:admin/create"
+sg_own_index:
+  cluster:
+  - "CLUSTER_COMPOSITE_OPS"
+  indices:
+    ${user_name}:
+      '*':
+      - "INDICES_ALL"
+sg_xp_monitoring:
+  readonly: true
+  indices:
+    ?monitor*:
+      '*':
+      - "INDICES_ALL"
+sg_xp_alerting:
+  readonly: true
+  cluster:
+  - "indices:data/read/scroll"
+  - "cluster:admin/xpack/watcher*"
+  - "cluster:monitor/xpack/watcher*"
+  indices:
+    ?watches*:
+      '*':
+      - "INDICES_ALL"
+    ?watcher-history-*:
+      '*':
+      - "INDICES_ALL"
+    ?triggered_watches:
+      '*':
+      - "INDICES_ALL"
+    '*':
+      '*':
+      - "READ"
+      - "indices:admin/aliases/get"
+sg_xp_machine_learning:
+  readonly: true
+  cluster:
+  - "cluster:admin/persistent*"
+  - "cluster:internal/xpack/ml*"
+  - "indices:data/read/scroll*"
+  - "cluster:admin/xpack/ml*"
+  - "cluster:monitor/xpack/ml*"
+  indices:
+    '*':
+      '*':
+      - "READ"
+      - "indices:admin/get*"
+    ?ml-*:
+      '*':
+      - "*"
+sg_readonly_and_monitor:
+  cluster:
+  - "CLUSTER_MONITOR"
+  - "CLUSTER_COMPOSITE_OPS_RO"
+  indices:
+    '*':
+      '*':
+      - "READ"
+sg_monitor:
+  cluster:
+  - "cluster:admin/xpack/monitoring/*"
+  - "cluster:admin/ingest/pipeline/put"
+  - "cluster:admin/ingest/pipeline/get"
+  - "indices:admin/template/get"
+  - "indices:admin/template/put"
+  - "CLUSTER_MONITOR"
+  - "CLUSTER_COMPOSITE_OPS"
+  indices:
+    ?monitor*:
+      '*':
+      - "INDICES_ALL"
+    ?marvel*:
+      '*':
+      - "INDICES_ALL"
+    ?kibana*:
+      '*':
+      - "READ"
+    '*':
+      '*':
+      - "indices:data/read/field_caps"
+sg_alerting:
+  cluster:
+  - "indices:data/read/scroll"
+  - "cluster:admin/xpack/watcher/watch/put"
+  - "cluster:admin/xpack/watcher*"
+  - "CLUSTER_MONITOR"
+  - "CLUSTER_COMPOSITE_OPS"
+  indices:
+    ?kibana*:
+      '*':
+      - "READ"
+    ?watches*:
+      '*':
+      - "INDICES_ALL"
+    ?watcher-history-*:
+      '*':
+      - "INDICES_ALL"
+    ?triggered_watches:
+      '*':
+      - "INDICES_ALL"
+    '*':
+      '*':
+      - "READ"
 ```
