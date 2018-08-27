@@ -2,6 +2,8 @@
 
 ## Пакеты
 
+На момент написания последняя версия была 6.3.2. Выбирать версию elastic в зависимости от доступной версии плагина search-guard https://search.maven.org/search?q=g:com.floragunn%20AND%20a:search-guard-6
+
 ```
 wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
 echo "deb https://artifacts.elastic.co/packages/6.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-6.x.list
@@ -760,6 +762,10 @@ Done with success
 [2018-08-24T16:48:49,578][INFO ][o.e.c.m.MetaDataUpdateSettingsService] [sUL5pb-] updating number_of_replicas to [0] for indices [searchguard]
 [2018-08-24T16:48:49,591][INFO ][o.e.c.m.MetaDataUpdateSettingsService] [sUL5pb-] [searchguard/-OqvcOclRtG2qj96US6h9g] auto expanded replicas to [0]
 ```
+
+### Запустить остальные ноды
+
+
 
 # TODO
 
