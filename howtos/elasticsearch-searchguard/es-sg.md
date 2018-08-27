@@ -766,6 +766,54 @@ Done with success
 ### Запустить остальные ноды
 
 
+## Установка kibana
+
+Ставить ту же версию, что и elasticsearch и search-guard
+
+```
+apt install kibana
+```
+
+### Установка search-guard
+
+Ищем тут https://search.maven.org/search?q=g:com.floragunn%20AND%20search-guard-kibana-plugin-6
+
+Кладём в /root/dist
+
+Ставим:
+
+```
+/usr/share/kibana/bin/kibana-plugin install file:///root/dist/search-guard-kibana-plugin-6.3.2-14.zip
+```
+
+### Настройки kibana
+
+Пароль kibanaserver - тот самый, что генерировался для sg_internal_users.yml
+
+```
+elasticsearch.username: "kibanaserver"
+elasticsearch.password: "паролькибана"
+elasticsearch.url: "https://elastic1.company.com:9200"
+elasticsearch.ssl.certificateAuthorities: "/etc/kibana/root-ca.pem"
+server.ssl.keyPassphrase: "Пароль3"
+server.ssl.enabled: "true"
+server.ssl.certificate: "/etc/kibana/elastic1_http.pem"
+server.ssl.key: "/etc/kibana/elastic1_http.key"
+server.host: "elastic1.company.com"
+xpack.security.enabled: false
+xpack.monitoring.enabled: true
+```
+
+```
+cp root-ca.pem /etc/kibana/
+cp elastic1_http.pem /etc/kibana/
+cp elastic1_http.key /etc/kibana/
+cd /etc/kibana/
+chmod 600 root-ca.pem elastic1_http.pem elastic1_http.key
+chown kibana:kibana root-ca.pem elastic1_http.pem elastic1_http.key
+```
+
+
 
 # TODO
 
