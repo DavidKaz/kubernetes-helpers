@@ -1,4 +1,4 @@
-# Установка и настройка filebeat/metricbeat для сбора данных в elasticsearch
+# Установка и настройка filebeat/metricbeat для сбора данных в elasticsearch с приложений и кластера kubernetes
 
 ## elasticsearch
 
@@ -58,12 +58,12 @@ sg_grafana:
 ## redis
 
 Используется master-slave установка redis https://github.com/flant/kube-redis, поэтому мониторится только master:
-В helm chart добавляется deployment metricbeat собирающий данные с redis. kubernetes.namespace - добавляем значение из переменных helm, так сам redis про это ничео не знает.
+В helm chart добавляется deployment metricbeat собирающий данные с redis. kubernetes.namespace - добавляем значение из переменных helm, так сам redis про это ничего не знает.
 В root-ca.pem должен быть корневой сертификат сгенерированный при установке elasticsearch.
 
 ## rabbit
 
-В helm chart добавляется deployment metricbeat собирающий данные с rabbit. kubernetes.namespace - также добавляем значение из переменных helm.
+В helm chart добавляется deployment metricbeat собирающий данные с rabbit. kubernetes.namespace - также добавляем значение из переменной из helm.
 В root-ca.pem должен быть корневой сертификат сгенерированный при установке elasticsearch.
 
 ## filebeat
