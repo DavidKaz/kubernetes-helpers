@@ -1,0 +1,240 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "filebeat.fullname" . }}
+  labels:
+    app: {{ template "filebeat.name" . }}
+    chart: {{ template "filebeat.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  filebeat.yml: |-
+    filebeat.modules:
+
+    processors:
+      - add_cloud_metadata:
+
+    filebeat.inputs:
+      - type: log
+        paths:
+          - /var/log/*.log
+          - /var/log/messages
+          - /var/log/syslog
+      - type: docker
+        containers.ids:
+        - "*"
+        processors:
+          - add_kubernetes_metadata:
+              in_cluster: true
+          - drop_event:
+              when:
+                equals:
+                  kubernetes.container.name: "filebeat"
+          # Разбираем поле message как json в поле applog
+          - decode_json_fields:
+              fields: ["message"]
+              process_array: false
+              max_depth: 1
+              target: "applog"
+              overwrite_keys: false
+          # Для приложений
+          # Копируем inProgress
+          - rename:
+              fields:
+                - from: applog.inProgress
+                  to: application.inProgress
+              fail_on_error: false
+              when:
+                has_fields: ['applog.inProgress']
+          # Для приложений
+          # Копируем statusCode
+          - rename:
+              fields:
+                - from: applog.res.statusCode
+                  to: application.res.statusCode
+              fail_on_error: false
+              when:
+                has_fields: ['applog.res.statusCode']
+          # Для приложений
+          # Копируем duration
+          - rename:
+              fields:
+                - from: applog.duration
+                  to: application.duration
+              fail_on_error: false
+              when:
+                has_fields: ['applog.duration']
+          # Для приложений
+          # Копируем name
+          - rename:
+              fields:
+                - from: applog.name
+                  to: application.name
+              fail_on_error: false
+              when:
+                has_fields: ['applog.name']
+          # Для nginx loadbalancer
+          # копируем applog целиком
+          - rename:
+              fields:
+                - from: applog
+                  to: loadbalancer
+              fail_on_error: false
+              when:
+                equals:
+                  kubernetes.container.name: "nginx"
+          # Поле типа integer, удаляем его, если там -
+          - drop_fields:
+              when:
+                equals:
+                  loadbalancer.nginx_upstream_response_time: "-"
+              fields: ["loadbalancer.nginx_upstream_response_time"]
+          - drop_fields:
+              when:
+                equals:
+                  loadbalancer.nginx_upstream_status: "-"
+              fields: ["loadbalancer.nginx_upstream_status"]
+          # Для frontend копируем applog целиком
+          - rename:
+              fields:
+                - from: applog
+                  to: frontend
+              fail_on_error: false
+              when:
+                regexp:
+                  kubernetes.container.name: ".*frontend"
+          # Удаляем applog, взяли из него, что нужно, остальное может быть в разных схемах и не ляжет в elastic
+          - drop_fields:
+              fields: ["applog"]
+
+    # Описываем свои добавленные поля
+    setup.template.overwrite: true
+    setup.template.append_fields:
+    # Приложения
+    - name: application.inProgress
+      type: integer
+    - name: application.res.statusCode
+      type: short
+    - name: application.duration
+      type: long
+    - name: application.name
+      type: keyword
+    # frontend nginx
+    - name: frontend.timeiso8601
+      type: date
+    - name: frontend.host
+      type: keyword
+    - name: frontend.remote_addr
+      type: text
+    - name: frontend.remote_user
+      type: text
+    - name: frontend.body_bytes_sent
+      type: integer
+    - name: frontend.request_time
+      type: float
+    - name: frontend.status
+      type: short
+    - name: frontend.request_uri
+      type: text
+    - name: frontend.X-Amzn-Trace-Id
+      type: text
+    - name: frontend.request_method
+      type: keyword
+    - name: frontend.redirect
+      type: text
+    - name: frontend.protocol
+      type: keyword
+    - name: frontend.http_referrer
+      type: text
+    - name: frontend.http_user_agent
+      type: text
+    # loadbalancer nginx
+    - name: loadbalancer.time
+      type: date
+    - name: loadbalancer.request_id
+      type: text
+    - name: loadbalancer.user
+      type: text
+    - name: loadbalancer.address
+      type: text
+    - name: loadbalancer.bytes_received
+      type: integer
+    - name: loadbalancer.bytes_sent
+      type: integer
+    - name: loadbalancer.protocol
+      type: text
+    - name: loadbalancer.scheme
+      type: keyword
+    - name: loadbalancer.method
+      type: keyword
+    - name: loadbalancer.host
+      type: keyword
+    - name: loadbalancer.path
+      type: text
+    - name: loadbalancer.request_query
+      type: text
+    - name: loadbalancer.referrer
+      type: text
+    - name: loadbalancer.user_agent
+      type: text
+    - name: loadbalancer.request_time
+      type: float
+    - name: loadbalancer.status
+      type: short
+    - name: loadbalancer.content_kind
+      type: text
+    - name: loadbalancer.upstream_response_time
+      type: date
+    - name: loadbalancer.upstream_retries
+      type: short
+    - name: loadbalancer.namespace
+      type: keyword
+    - name: loadbalancer.ingress
+      type: keyword
+    - name: loadbalancer.service
+      type: keyword
+    - name: loadbalancer.service_port
+      type: keyword
+    - name: loadbalancer.vhost
+      type: keyword
+    - name: loadbalancer.location
+      type: text
+    - name: loadbalancer.nginx_upstream_addr
+      type: text
+    - name: loadbalancer.nginx_upstream_response_length
+      type: integer
+    - name: loadbalancer.nginx_upstream_response_time
+      type: float
+    - name: loadbalancer.nginx_upstream_status
+      type: short
+
+    output.elasticsearch:
+      hosts: {{ pluck .Values.global.env .Values.es.hosts | first | default .Values.es.hosts._default }}
+      username: {{ pluck .Values.global.env .Values.es.username | first | default .Values.es.username._default }}
+      password: {{ pluck .Values.global.env .Values.es.password | first | default .Values.es.password._default }}
+      ssl.certificate_authorities: ["/etc/pki/root/root-ca.pem"]
+
+    xpack.monitoring:
+      enabled: true
+      elasticsearch:
+        username: {{ pluck .Values.global.env .Values.es.monusername | first | default .Values.es.monusername._default }}
+        password: {{ pluck .Values.global.env .Values.es.monpassword | first | default .Values.es.monpassword._default }}
+        ssl.certificate_authorities: ["/etc/pki/root/root-ca.pem"]
+
+    # When a key contains a period, use this format for setting values on the command line:
+    # --set config."http\.enabled"=true
+    http.enabled: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: root-ca
+  labels:
+    app: {{ template "filebeat.name" . }}
+    chart: {{ template "filebeat.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  root-ca.pem: |-
+    -----BEGIN CERTIFICATE-----
+    -----END CERTIFICATE-----

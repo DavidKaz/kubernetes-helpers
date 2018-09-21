@@ -1,0 +1,11 @@
+es:
+  hosts:
+    _default: "[\"https://es-host:9200\"]"
+  username:
+    _default: "filebeat"
+  monusername:
+    _default: "monitor"
+  password:
+    _default: pass
+  monpassword:
+    _default: pass

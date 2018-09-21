@@ -1,0 +1,41 @@
+# Deploy singleton instance in the whole cluster for some unique data sources, like kube-state-metrics
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-metricbeat" .Chart.Name }}
+  labels:
+    k8s-app: {{ printf "%s-metricbeat" .Chart.Name }}
+spec:
+  template:
+    metadata:
+      labels:
+        k8s-app: {{ printf "%s-metricbeat" .Chart.Name }}
+    spec:
+      {{- include "tolerations" . | indent 6 }}
+      {{- include "nodeselector" . | indent 6 }}
+      containers:
+      - name: metricbeat
+        image: docker.elastic.co/beats/metricbeat:6.3.2
+        args: [
+          "-c", "/etc/metricbeat.yml",
+          "-e",
+        ]
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - name: config
+          mountPath: /etc/metricbeat.yml
+          readOnly: true
+          subPath: metricbeat.yml
+        - name: root-ca
+          mountPath: /etc/pki/root/root-ca.pem
+          readOnly: true
+          subPath: root-ca.pem
+      volumes:
+      - name: config
+        configMap:
+          defaultMode: 0600
+          name: {{ printf "%s-metricbeat-config" .Chart.Name }}
+      - name: root-ca
+        configMap:
+          name: {{ printf "%s-metricbeat-root-ca" .Chart.Name }}

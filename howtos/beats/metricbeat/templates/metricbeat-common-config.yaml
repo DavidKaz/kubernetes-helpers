@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-metricbeat-root-ca" .Chart.Name }}
+  labels:
+    k8s-app: {{ printf "%s-metricbeat-config" .Chart.Name }}
+data:
+  root-ca.pem: |-
+    -----BEGIN CERTIFICATE-----
+    -----END CERTIFICATE-----

@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-metricbeat-config" .Chart.Name }}
+  labels:
+    k8s-app: {{ printf "%s-metricbeat-config" .Chart.Name }}
+data:
+  metricbeat.yml: |-
+    metricbeat.modules:
+    - module: redis
+      metricsets: ["info", "keyspace"]
+      enabled: true
+      period: 10s
+      hosts: ["redis:6379"]
+
+      fields_under_root: true
+      fields:
+        kubernetes.namespace: {{ .Release.Namespace }}
+
+    output.elasticsearch:
+      hosts: {{ pluck .Values.global.env .Values.es.hosts | first | default .Values.es.hosts._default }}
+      username: {{ pluck .Values.global.env .Values.es.username | first | default .Values.es.username._default }}
+      password: {{ pluck .Values.global.env .Values.es.password | first | default .Values.es.password._default }}
+      ssl.certificate_authorities: ["/etc/pki/root/root-ca.pem"]
+
+    xpack.monitoring:
+      enabled: true
+      elasticsearch:
+        username: {{ pluck .Values.global.env .Values.es.monusername | first | default .Values.es.monusername._default }}
+        password: {{ pluck .Values.global.env .Values.es.monpassword | first | default .Values.es.monpassword._default }}
+        ssl.certificate_authorities: ["/etc/pki/root/root-ca.pem"]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-metricbeat-root-ca" .Chart.Name }}
+  labels:
+    k8s-app: {{ printf "%s-metricbeat-config" .Chart.Name }}
+data:
+  root-ca.pem: |-
+    -----BEGIN CERTIFICATE-----
+    -----END CERTIFICATE-----

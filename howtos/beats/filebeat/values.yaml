@@ -1,0 +1,92 @@
+image:
+  repository: docker.elastic.co/beats/filebeat-oss
+  tag: 6.3.2
+  pullPolicy: IfNotPresent
+
+# Upload index template to Elasticsearch if Logstash output is enabled
+# https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-template.html
+# List of Elasticsearch hosts
+indexTemplateLoad: []
+  # - elasticsearch:9200
+
+# List of beat plugins
+plugins: []
+  # - kinesis.so
+
+# pass custom command. This is equivalent of Entrypoint in docker
+command: []
+
+# pass custom args. This is equivalent of Cmd in docker
+args: []
+
+# A list of additional environment variables
+extraVars: []
+  # - name: TEST1
+  #   value: TEST2
+  # - name: TEST3
+  #   valueFrom:
+  #     configMapKeyRef:
+  #       name: configmap
+  #       key: config.key
+
+# Add additional volumes and mounts, for example to read other log files on the host
+extraVolumes: []
+  # - hostPath:
+  #     path: /var/log
+  #   name: varlog
+extraVolumeMounts: []
+  # - name: varlog
+  #   mountPath: /host/var/log
+  #   readOnly: true
+
+extraInitContainers: []
+  # - name: echo
+  #   image: busybox
+  #   imagePullPolicy: Always
+  #   args:
+  #     - echo
+  #     - hello
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 200Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 100Mi
+
+priorityClassName: ""
+
+nodeSelector: {}
+
+tolerations: []
+  # - operator: Exists
+
+affinity: {}
+
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+
+serviceAccount:
+  # Specifies whether a ServiceAccount should be created
+  create: true
+  # The name of the ServiceAccount to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+es:
+  hosts:
+    _default: "[\"https://es-host:9200\"]"
+  username:
+    _default: "filebeat"
+  monusername:
+    _default: "monitor"
+  password:
+    _default: pass
+  monpassword:
+    _default: pass
